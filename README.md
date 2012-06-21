@@ -35,16 +35,16 @@ Known issues
 Acknowledgments
 ---------------
 University of Zagreb, Faculty of electrical engineering and computing (FER)
-Professor Danko Basch, PhD. - ideas, support, mentoring
-Krešimir Kroflin - ideas, support, development, mentoring 
-Ivana Bosnić - ideas
-Sonja Miličić - development
-Nikola Tanković - development
-Enola Knežević - development
+* Professor Danko Basch, PhD. - ideas, support, mentoring
+* Krešimir Kroflin - ideas, support, development 
+* Ivana Bosnić - ideas
+* Sonja Miličić - development
+* Nikola Tanković - development
+* Enola Knežević - development
 
 Licence
 -------
-Copyright (C) 2012 Krešimir Kroflin, Sonja Miličić, Nikola Tanković,
+Copyright (C) 2005-2012 Krešimir Kroflin, Sonja Miličić, Nikola Tanković,
 Enola Knežević
 
 This program is free software: you can redistribute it and/or modify
