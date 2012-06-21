@@ -1,0 +1,475 @@
+<?php
+/**
+ * This page defines the form to create or edit an instance of this module
+ * It is used from /course/mod.php.  The whole instance is available as $form.
+ *
+ * @author Krešimir Kroflin
+ * @author Enola Knežević
+ * @package assignmentdistrib
+ **/
+require_once("$CFG->dirroot/mod/assignmentdistrib/lib.php");
+
+/// First we check that form variables have been initialised
+if (!isset($form->name)) {
+    $form->name = '';
+}
+if (!isset($form->description)) {
+    $form->description = '';
+}
+if (!isset($form->distributiontype)) {
+    $form->distributiontype = ASSIGNMENTDISTRIB_DISTRIBUTIONTYPE_CHOOSEREPEAT;
+}
+if (!isset($form->worktype)) {
+    $form->worktype = ASSIGNMENTDISTRIB_WORKTYPE_INDIVIDUAL;
+}
+if (!isset($form->grade)) {
+    $form->grade = 100;
+}
+if (!isset($form->timeavailable)) {
+    $form->timeavailable = time();
+}
+if (!isset($form->timedue)) {
+    $form->timedue = time()+7*24*3600;
+}
+if (!isset($form->preventlate)) {
+    $form->preventlate = 0;
+}
+if (!isset($form->assignmenttype)) {
+    $form->assignmenttype = ASSIGNMENTDISTRIB_ASSIGNMENTTYPE_OFFLINE;
+}
+if (!isset($form->leadercangrade)) {
+    $form->leadercangrade = 0;
+}
+if (!isset($form->allowgroupmarket)) {
+    $form->allowgroupmarket = 0;
+}
+if (!isset($form->allowstudentchange)) {
+    $form->allowstudentchange = 0;
+}
+
+
+if(isset($form->id)) {
+    $penalties = get_recordset_select("assignmentdistrib_penalties", "assignmentdistrib_id = {$form->id}", 'time ASC', '*');
+} else {
+    $penalties = array();
+}
+$penalties_count = ($penalties) ? $penalties->_numOfRows : 0;
+
+?>
+<script type="text/javascript" language="javascript">
+    var dueitems = ['dueday','duemonth','dueyear','duehour', 'dueminute', 'preventlate'];
+    var availableitems = ['availableday','availablemonth','availableyear','availablehour', 'availableminute'];
+    var visible_penalties = <?=$penalties_count?>;
+    
+    function toggle_leadercangrade(value)
+    {
+        if (value=="<?=ASSIGNMENTDISTRIB_WORKTYPE_INDIVIDUAL?>") {
+            document.getElementById('assignmentdistrib_leadercangrade_container').style.display="none";
+            document.getElementById('assignmentdistrib_allowgroupmarket_container').style.display="none";
+        }
+        else {
+            document.getElementById('assignmentdistrib_leadercangrade_container').style.display="";
+            document.getElementById('assignmentdistrib_allowgroupmarket_container').style.display="";
+        }
+    }
+    
+    function toggle_penalties(value)
+    {
+        if (value=="0") {
+            document.getElementById('assignmentdistrib_penalties_container').style.display="";
+        }
+        else {
+            document.getElementById('assignmentdistrib_penalties_container').style.display="none";
+        }
+    }
+    
+    function add_new_penalty()
+    {
+        visible_penalties = visible_penalties + 1;
+        if (visible_penalties<=<?=ASSIGNMENTDISTRIB_MAXPENALTIES?>)
+            document.getElementById('penalty_container_'+visible_penalties).style.display = '';
+        else alert('Maximum is reached');
+    }
+</script>
+<!--
+<div style="color: red">
+    <p>
+        "Assignment Distribution" aktivnost se nalazi u razvojnoj fazi te kao takva nije namijenjena za 
+        redovnu upotrebu.
+    </p>
+    <p>
+        Aktivnost je namijenjena za podjelu zadataka studentima iz zadanog skupa zadataka.<br />
+        Studenti mogu raditi individualno ili u grupama. Grupe kreira voditelj grupe prilikom prilikom odabira zadatka.<br />
+        Voditelj grupe nakon dodjele bodova ima mogućnost raspore�ivanja dobivenih bodova drugim studentima.
+    </p>
+    <p>
+        Sve mogu�nosti koje vidite u ovom prozoru trenutno nisu podr�ane.<br />
+        <strong>Work Type</strong> & <strong>Task distribution</strong>: podržani su samo kombinacije: <strong>Individual-Random</strong> i <strong>Team-Choose. Repeat allowed</strong>.<br />
+        <strong>Assignment type</strong>: Upload i Online nisu testirani u radnom okru�enju<br />
+    </p>
+    <p>
+        <strong>Due date</strong>: Ignorira se
+    </p>
+    <p>
+        Testirano je samo broj�ano ocjenivanje.
+    </p>
+    <p>
+        Podaci iz ove aktivnosti nisu uklju�eni u Moodle backup.
+    </p>
+    <p>
+        Podrška za ovu aktivnost je ograni�ena dobrom voljom i slobodnim vremenom autora aktivnosti.
+    </p>
+    <p>
+    	<strong>Ocjenjivanje u verziji Moodla 1.9 koja se koristi na FER-u, ne radi!</strong><br/>
+    	Ocjene se mogu kao i do sada unositi u modulu no nece biti prenesene
+    	u konacni popis bodova.
+    </p>
+    <p>
+        &nbsp;&nbsp;&nbsp;KK
+    </p>
+</div>
+-->
+<form name="form" method="post" action="mod.php">
+<table cellpadding="5">
+<tr valign="top">
+    <td align="right"><b><?php  print_string("name") ?>:</b></td>
+    <td align="left">
+        <input type="text" name="name" size="30" value="<?php  p($form->name) ?>">
+    </td>
+</tr>
+<tr valign="top">
+    <td align="right"><b><?php print_string("description", "assignmentdistrib") ?>:</b>
+     <br /><br />
+     <?php
+        helpbutton("writing", get_string("helpwriting"), "moodle", true, true);
+        echo "<br />";
+        helpbutton("questions", get_string("helpquestions"), "moodle", true, true);
+        echo "<br />";
+        if ($usehtmleditor) {
+           helpbutton("richtext", get_string("helprichtext"), "moodle", true, true);
+        } else {
+           emoticonhelpbutton("form", "description");
+        } 
+      ?>
+    </td>
+    <td align="left">
+    <?php
+       print_textarea($usehtmleditor, 20, 60, 680, 400, "description", $form->description);
+    
+       if ($usehtmleditor) {
+           echo '<input type="hidden" name="descriptionformat" value="'.FORMAT_HTML.'" />';
+       } else {
+           echo '<div align="right">';
+           helpbutton("textformat", get_string("formattexttype"));
+           print_string("formattexttype");
+           echo ':&nbsp;';
+           if (!isset($form->descriptionformat)) {
+               $form->descriptionformat = $defaultformat;
+           }
+           choose_from_menu(format_text_menu(), "descriptionformat", $form->descriptionformat, ""); 
+           echo '</div>';
+       }
+    ?>
+    </td>
+</tr>
+<tr>
+    <td align="right"><b><?php print_string('worktype', 'assignmentdistrib') ?>:</td>
+    <td align="left">
+        
+    <script type="text/javascript">
+        function onselectindividual() {
+            var opt = document.getElementById("menuworktype").selectedIndex;
+            if (opt == 0)
+            {
+                var opt = document.getElementById("menudistributiontype").options;
+                opt[0].disabled = "";
+            }
+            else
+            { 
+                var opt = document.getElementById("menudistributiontype").options;
+                opt[0].disabled = "disabled";
+            }
+        }
+
+          
+    </script>
+    <?php
+        $work_types = array(
+            ASSIGNMENTDISTRIB_WORKTYPE_INDIVIDUAL   => get_string('individual', 'assignmentdistrib')
+        ,   ASSIGNMENTDISTRIB_WORKTYPE_TEAM         => get_string('team', 'assignmentdistrib')
+        );
+        // check if it is assigned already
+        if (isset($form->id)) {
+            $q_is_assigned = get_record_sql("SELECT COUNT(*) as count
+                                        FROM {$CFG->prefix}assignmentdistrib_submissions AS dbas
+                                            , {$CFG->prefix}assignmentdistrib_assignments AS dbaa
+                                        WHERE  dbas.assignmentdistrib_assignments_id = dbaa.id
+                                            AND dbaa.assignmentdistribid = {$form->id}
+                                        ");
+            $is_assigned = ($q_is_assigned->count > 0);
+        } else {
+            $is_assigned = false;
+        }
+
+        choose_from_menu($work_types, 'worktype', $form->worktype, '', 'toggle_leadercangrade(this.value); onselectindividual()', '0', false, (isset($form->id) && $form->id && $is_assigned));
+	?>
+    </td>
+</tr>
+<tr id="assignmentdistrib_leadercangrade_container" <?php if ($form->worktype == ASSIGNMENTDISTRIB_WORKTYPE_INDIVIDUAL) echo "style='display: none'" ?> valign=top>
+    <td align="right"><b><?php print_string("leadercangrade", "assignmentdistrib") ?>:</b></td>
+    <td align="left">
+        <?php
+        print_checkbox('leadercangrade', '1', ($form->leadercangrade == 1), '', '', '', false);
+        ?>
+    </td>
+</tr>
+    
+<tr id="assignmentdistrib_allowgroupmarket_container" <?php if ($form->worktype == ASSIGNMENTDISTRIB_WORKTYPE_INDIVIDUAL) echo "style='display: none'" ?> valign=top>
+    <td align="right"><b><?php print_string("allowgroupmarket", "assignmentdistrib") ?>:</b></td>
+    <td align="left">
+        <?php
+        print_checkbox('allowgroupmarket', '1', ($form->allowgroupmarket == 1), '', '', '', false);
+        ?>
+    </td>
+</tr>
+
+<tr id="assignmentdistrib_allowstudentchange_container" <?php if ($form->worktype == ASSIGNMENTDISTRIB_WORKTYPE_INDIVIDUAL) echo "style='display: none'" ?> valign=top>
+    <td align="right"><b><?php print_string("allowstudentchange", "assignmentdistrib") ?>:</b></td>
+    <td align="left">
+        <?php
+        print_checkbox('allowstudentchange', '1', ($form->allowstudentchange == 1), '', '', '', false);
+        ?>
+    </td>
+</tr>    
+
+<tr>
+    <td align="right"><b><?php print_string('distributiontype', 'assignmentdistrib') ?>:</td>
+    <td align="left">
+    <?php
+        $distribution_types = array(
+            ASSIGNMENTDISTRIB_DISTRIBUTIONTYPE_RANDOM           => get_string('distributionrandom', 'assignmentdistrib')
+        ,   ASSIGNMENTDISTRIB_DISTRIBUTIONTYPE_CHOOSENOREPEAT   => get_string('distributionchoosenorepeat', 'assignmentdistrib')
+        ,   ASSIGNMENTDISTRIB_DISTRIBUTIONTYPE_CHOOSEREPEAT     => get_string('distributionchooserepeat', 'assignmentdistrib')
+        ,   ASSIGNMENTDISTRIB_DISTRIBUTIONTYPE_CHOOSEREPEATMAX  => get_string('distributionchooserepeatmax', 'assignmentdistrib')
+        );
+        choose_from_menu($distribution_types, "distributiontype", $form->distributiontype, "");
+	?>
+    </td>
+</tr>
+<?php /*
+<tr>
+    <td align="right"><b><?php print_string('numberofrepeats', 'assign') ?>:</td>
+    <td>
+	<?php
+    	choose_from_menu(assignmentdistrib_get_max_repeat_tasks(), "numberofrepeats", "<?php  p($form->numberofrepeats) ?>", "");
+	?>
+    </td>
+</tr>
+*/ ?>
+<tr valign=top>
+    <td align="right"><b><?php print_string("grade") ?>:</b></td>
+    <td align="left">
+        <?php
+        print_grade_menu($course->id, "grade", "$form->grade");
+        ?>
+    </td>
+</tr>
+<tr valign=top>
+    <td align="right"><b><?php print_string("availabledate","assignmentdistrib") ?>:</b></td>
+    <td align="left">
+        <input name="availableenable" type="checkbox" value="1" alt="<?php print_string('availabledate', 'assignmentdistrib') ?>" onclick="return lockoptions('form', 'availableenable', availableitems)" <?php if ($form->timeavailable) echo 'checked="checked"' ?> />
+    <?php
+           print_date_selector("availableday", "availablemonth", "availableyear", $form->timeavailable);
+           echo "&nbsp;-&nbsp;";
+           print_time_selector("availablehour", "availableminute", $form->timeavailable);
+    ?>
+        <input type="hidden" name="havailableday"    value="0" />
+        <input type="hidden" name="havailablemonth"  value="0" />
+        <input type="hidden" name="havailableyear"   value="0" />
+        <input type="hidden" name="havailablehour"   value="0" />
+        <input type="hidden" name="havailableminute" value="0" />
+    </td>
+</tr>
+<tr valign=top>
+    <td align="right"><b><?php print_string("duedate", "assignmentdistrib") ?>:</b></td>
+    <td align="left">
+        <input name="dueenable" type="checkbox" value="1" alt="<?php print_string('duedate', 'assignmentdistrib') ?>" onclick="return lockoptions('form', 'dueenable', dueitems)" <?php if ($form->timedue) echo 'checked="checked"' ?> />
+    <?php
+           print_date_selector("dueday", "duemonth", "dueyear", $form->timedue);
+           echo "&nbsp;-&nbsp;";
+           print_time_selector("duehour", "dueminute", $form->timedue);
+    ?>
+        <input type="hidden" name="hdueday"    value="0" />
+        <input type="hidden" name="hduemonth"  value="0" />
+        <input type="hidden" name="hdueyear"   value="0" />
+        <input type="hidden" name="hduehour"   value="0" />
+        <input type="hidden" name="hdueminute" value="0" />
+    </td>
+</tr>
+<tr valign="top">
+    <td>&nbsp;</td>
+    <td align="right"><?php print_string('preventlate', 'assignmentdistrib') ?>:
+    <?php 
+        $options[0] = get_string('no'); $options[1] = get_string('yes');
+        choose_from_menu($options, 'preventlate', $form->preventlate, '', "toggle_penalties(this.value)");
+    ?>
+    <input type="hidden" name="hpreventlate" value="0" />
+    </td>
+</tr>
+
+<tr id="assignmentdistrib_penalties_container"<?php if ($form->preventlate) echo 'style="display: none"'?> valign="top">
+    <td>&nbsp;</td>
+    <td><b><?php print_string('penalties', 'assignmentdistrib') ?></b>:
+        <table>
+            <tr>
+                <th>
+                    Date
+                </th>
+                <th>
+                    Points (+/-)
+                </th>
+            </tr>
+        <?php
+            $i=0;
+            foreach($penalties as $p)
+            {
+            ?>
+            <tr>
+                <td>
+                    <?php
+                        print_date_selector("pen_dueday_$i", "pen_duemonth_$i", "pen_dueyear_$i", $p['time']);
+                        echo "&nbsp;-&nbsp;";
+                        print_time_selector("pen_duehour_$i", "pen_dueminute_$i", $p['time']);
+                     ?>
+                </td>
+                <td>
+                    <input type="text" name="penalty_<?=$i?>" id="penalty_<?=$i?>" value="<?php p($p['penalty_grade']); ?>" />
+                </td>
+                <td>
+                    <span onclick="document.getElementById('penalty_<?=$i?>').value='0'" style="font-size: 0.8em; color:blue; text-decoration: underline; cursor: pointer"> <?php print_string('clear', 'assignmentdistrib') ?> </span>
+                </td>
+            </tr>
+        <?php $i++; }
+        for(;$i<ASSIGNMENTDISTRIB_MAXPENALTIES; $i++)
+        {
+        ?>
+            <tr id="penalty_container_<?=$i?>" <?php if ($i>=0) echo "style='display: none'" ?>>
+                <td>
+                    <?php
+                        print_date_selector("pen_dueday_$i", "pen_duemonth_$i", "pen_dueyear_$i", $form->timedue+($i+1)*24*3600);
+                        echo "&nbsp;-&nbsp;";
+                        print_time_selector("pen_duehour_$i", "pen_dueminute_$i", $form->timedue+($i+1)*24*3600);
+                     ?>
+                </td>
+                <td>
+                    <input type="text" name="penalty_<?=$i?>" id="penalty_<?=$i?>" value="0" />
+                </td>
+                <td>
+                    <span onclick="document.getElementById('penalty_<?=$i?>').value='0'" style="font-size: 0.8em; color:blue; text-decoration: underline; cursor: pointer"> <?php print_string('clear', 'assignmentdistrib') ?> </span>
+                </td>
+            </tr>
+        <?php
+        }
+        ?>
+        <tr>
+            <td colspan="3" align="center"><span onclick="add_new_penalty()" style="font-size: 0.8em; color:blue; text-decoration: underline; cursor: pointer"> <?php print_string('addnew', 'assignmentdistrib') ?> </span></td>
+        </tr>
+        </table>
+    </td>
+</tr>
+    
+<?php /*
+<tr>
+    <td align="right"><b><?php print_string('allowlatesubmit', 'assign') ?>:</td>
+    <td>
+	<?php $yesno = assignmentdistrib_make_yesno();
+	choose_from_menu($yesno, "allowlatesubmit", "<?php  p($form->allowlatesubmit) ?>", ""); ?>
+    </td>
+</tr>
+<tr>
+    <td align="right"><b><?php print_string('allowresubmit', 'assign') ?>:</td>
+    <td>
+	<?php choose_from_menu($yesno, "allowresubmit", "<?php  p($form->allowresubmit) ?>", ""); ?>
+    </td>
+</tr>
+<tr>
+    <td align="right"><b><?php print_string('submittype', 'assign') ?>:</td>
+    <td>
+	<?php
+	$submittypes = assignmentdistrib_get_submit_types($a);
+	choose_from_menu($submittypes, "submittype", "<?php  p($form->submittypes) ?>", ""); ?>
+    </td>
+</tr>
+<tr>
+    <td align="right"><b><?php print_string('grade', 'assign') ?>:</td>
+    <td>
+	<?php
+    print_grade_menu($course->id, "grade", "20");
+	?>
+	</td>
+
+</tr>
+*/ ?>
+
+<tr valign="top">
+    <td colspan="2">&nbsp;</td>
+</tr>
+<tr valign="top">
+    <td align="right"><b><?php print_string("assignmenttype", "assignmentdistrib") ?>:</b></td>
+    <td align="left">
+    <?php
+        $assignment_types = array(
+            ASSIGNMENTDISTRIB_ASSIGNMENTTYPE_OFFLINE        => get_string('offline_activity', 'assignmentdistrib')
+        ,   ASSIGNMENTDISTRIB_ASSIGNMENTTYPE_ONLINETEXT     => get_string('online_text', 'assignmentdistrib')
+        ,   ASSIGNMENTDISTRIB_ASSIGNMENTTYPE_UPLOADSINGLE   => get_string('upload_single', 'assignmentdistrib')
+        );
+        choose_from_menu($assignment_types, 'assignmenttype', $form->assignmenttype, '');
+    ?>
+    </td>
+</tr>
+<tr valign="top">
+    <td align="right"><b><?php print_string("studentcansuggest", "assignmentdistrib") ?>:</b></td>
+    <td align="left">
+        <?php
+            choose_from_menu($options, "suggestable", (isset($form->suggestable) && $form->suggestable), ""); 
+        ?>
+    </td>
+</tr>
+<!-- The following line for Moodle 1.5 prints the visibility setting form element -->
+<?php print_visible_setting($form); ?>
+<!-- and if your module uses groups you would also have -->
+<?php // print_groupmode_setting($form); ?>
+
+</table>
+<!-- These hidden variables are always the same -->
+<input type="hidden" name="course"        value="<?php  p($form->course) ?>" />
+<input type="hidden" name="sesskey"       value="<?php  p($form->sesskey) ?>" />
+<input type="hidden" name="coursemodule"  value="<?php  p($form->coursemodule) ?>" />
+<input type="hidden" name="section"       value="<?php  p($form->section) ?>" />
+<input type="hidden" name="module"        value="<?php  p($form->module) ?>" />
+<input type="hidden" name="modulename"    value="<?php  p($form->modulename) ?>" />
+<input type="hidden" name="instance"      value="<?php  p($form->instance) ?>" />
+<input type="hidden" name="mode"          value="<?php  p($form->mode) ?>" />
+
+<input type="submit" name="submit" value="<?php  print_string('savechanges') ?>" />
+<input type="button" onclick="window.location='<?php
+echo $CFG->wwwroot; if (!$form->coursemodule)
+{
+?>/course/view.php?id=<?php
+echo $form->course; }
+else
+{ 
+?>/mod/assignmentdistrib/view.php?id=<?php
+echo $form->coursemodule; }
+?>'" name="cancel" value="<?php
+print_string('cancel') ?>" />
+
+</form>
+
+<script type="text/javascript">
+<?php 
+    if (!$form->timedue) echo "lockoptions('form','dueenable', dueitems);";
+    if (!$form->timeavailable) echo "lockoptions('form','availableenable', availableitems);";
+?>
+    onselectindividual();
+</script>

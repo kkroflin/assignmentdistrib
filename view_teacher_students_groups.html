@@ -1,0 +1,281 @@
+<?php
+$editgrades = optional_param('editgrades', false, PARAM_BOOL);
+$showstudents = optional_param('showstudents', false, PARAM_BOOL);
+
+require_variable($assignmentdistrib->worktype);
+$worktype = $assignmentdistrib->worktype;
+?>
+
+<div style="text-align: right">
+    <!--a href="#">Edit grades</a-->
+    <?php /* 
+    | 
+    <a href="#">Show students in groups</a>
+    */
+    ?>
+</div>
+<br />
+<?php print_simple_box_start('center', '80%', '', 0); ?>
+<div style="text-align: center; width:100%"/>
+    <?php
+    echo link_to_popup_window($CFG->wwwroot.'/mod/assignmentdistrib/group.php?id='.s($cm->id).'&mode=addgroup'
+                            , 'assignment', get_string('addnewgroup', 'assignmentdistrib'), 700, 800
+                            , get_string('addnewgroup', 'assignmentdistrib'), 'none', true);
+    /*
+    echo link_to_popup_window($CFG->wwwroot.'/mod/assignmentdistrib/group.php?id='.s($cm->id).'&aid='.s($item->assignment_id).'&mode=addgroup'
+                            , 'assignment', get_string('addnewgroup', 'assignmentdistrib'), 700, 800
+                            , get_string('addnewgroup', 'assignmentdistrib'), 'none', true);
+                            */
+    ?>
+</div>
+<?php print_simple_box_end(); ?>
+<table class="generaltable" width="90%" cellpadding="2" border="1" align="center">
+    <tr>
+        <th class="header c0" align="left"   wrap="nowrap" >&nbsp;
+    	   <?php
+    	       echo $worktype ? 'Group / student' : 'Student'; 
+    	   ?>
+        </th>
+        <th class="header c0" align="center" >&nbsp;Assignment</th>
+        <th class="header c1" align="center" >&nbsp;Grade</th>
+        <th class="header c2" align="center" >&nbsp;Comment</th>
+        <th class="header c3" align="center" >&nbsp;Modified (student)</th>
+        <th class="header c4" align="center" >&nbsp;Modified (teacher)</th>
+        <th class="header c5" align="center" wrap="nowrap" >&nbsp;</th>
+        </tr>
+    <?php
+        $nogroup = true;
+        $current_group = null;
+        foreach ($submissions_list as $item) {
+            //echo '<option value="'.$student->id.'">'.s($student->firstname).' '.s($student->lastname).', '.s($student->email).'</option>';
+            if($item->group_id != $current_group)
+            {
+                // DISPLAY GROUP
+                $current_group = $item->group_id;
+
+
+                ?>
+                <tr class="r1">
+                    <td align="left"   class="header c1">
+                        <strong><?php echo s($item->leader_firstname).' '.s($item->leader_lastname).' ('.s($groups_stats[$item->group_id]->count) .')'; ?></strong>
+                        &nbsp;&nbsp;&nbsp;
+                        <?php
+                        echo link_to_popup_window($CFG->wwwroot.'/mod/assignmentdistrib/group.php?id='.s($cm->id).'&aid='.s($item->assignment_id).'&mode=editgroup&gid='.$current_group
+                                                , 'assignment', get_string('edit', 'assignmentdistrib'), 700, 800
+                                                , get_string('edit', 'assignmentdistrib'), 'none', true);
+                        ?>
+                    </td>
+                    <td align="center" class="header c1">
+                        <?php
+                            if($item->assignment_id != null) {
+                                //print_object($item->userid);
+                                echo link_to_popup_window($CFG->wwwroot.'/mod/assignmentdistrib/assignment.php?id='.s($cm->id).'&aid='.s($item->assignment_id).'&studentid='.s($item->userid)
+                    	           , 'assignment', s(substr($item->assignment_name, 0, 15)), 700, 800, 'Assignment: '.s($item->assignment_name), 'none', true);
+
+                                if($item->group_grade == -1){
+                                    echo " | ";
+                                    echo link_to_popup_window($CFG->wwwroot."/mod/assignmentdistrib/changeassignment.php?id=$cm->id&groupid=$current_group"
+                                        , 'change', 'Change', 500, 500, 'Change assignment', 'none', true);
+
+                                }
+
+                            }
+                            else
+                            {
+                                echo '-';
+                            }
+                        ?>
+                    </td>
+                    <td align="center" class="header c1">
+                        <?php
+                            $grade_info = grade_get_grades($cm->course, 'mod', 'assignmentdistrib', $cm->instance, array($item->id));
+                            $grade_max = $grade_info->items[0]->grademax;
+//                            $grade_max = grade_get_grades($cm->course, 'mod', 'assignmentdistrib', $cm->instance, array($item->id))->items[0]->grademax;
+                            //print_object($grade_max);
+                            $group_grade = round($item->group_grade,2) .'&nbsp;/&nbsp;' . round($grade_max,2);
+                            echo $item->group_grade == -1 ? '-' : $group_grade;
+
+                        ?>
+                    </td>
+                	<td align="center" class="header c1" style="text-align: center">
+                	    <?php echo format_text($item->group_comment, $item->group_commentformat) ?>
+                	</td>
+                	<td align="center" class="header c1">
+                        <?php
+                            if($item->timemodified) {
+                                $userdate = userdate($item->timemodified);
+                                
+                                if($item->assignmenttype == ASSIGNMENTDISTRIB_ASSIGNMENTTYPE_UPLOADSINGLE) {
+                                    echo '<a target="_blank" href="'.assignmentdistrib_download_url($item->var1).'">'.$userdate.'</a>';
+                                } else if($item->assignmenttype == ASSIGNMENTDISTRIB_ASSIGNMENTTYPE_ONLINETEXT) {
+                                    echo link_to_popup_window($CFG->wwwroot.'/mod/assignmentdistrib/submitted_content.php?id='.s($cm->id).'&uid='.s($item->userid)
+                                        , 'submitted_content', $userdate, 600, 600, null, 'none', true);
+                                } else {
+                                    echo $userdate;
+                                }
+                            } else {
+                                echo '-';
+                            }
+                        ?>
+                	</td>
+                	<td align="center" class="header c1">
+                	    <?php
+                	        if($item->group_timegraded > 0) {
+                	            echo userdate($item->group_timegraded);
+                	        } else {
+                	            echo '-';
+                	        }
+                	    ?>
+                	</td>
+                	<td align="center" nowrap="" class="header c1">
+                	   <?php
+                	       echo link_to_popup_window("/mod/assignmentdistrib/grade.php?id=$cm->id&groupid=$item->group_id"
+                	           , 'grade', ($item->group_grade == -1 ? 'Grade' : 'Upgrade'), 700, 680, 'Grade group', 'none', true);
+                	   ?>
+                    </td>
+                </tr>
+            	<?php
+            }
+            ?>
+            <tr class="r0">
+                <td align="left"   class="cell c0" style="padding-left: 7px;" nowrap="">
+                    <?php /* echo s($item->firstname).' '.s($item->lastname).' <em>('.s($item->username).')</em>'; */ ?>
+                    <a href="/moodle/user/view.php?id=<?php echo $item->id; ?>"><?php echo s($item->firstname).' '.s($item->lastname).' <em>('.s($item->username).')</em>'; ?></a>
+                </td>
+                <td align="center" class="r0 c0">
+                    <?php
+                        if($item->assignment_id != null) {
+                            echo link_to_popup_window($CFG->wwwroot.'/mod/assignmentdistrib/assignment.php?id='.s($cm->id).'&aid='.s($item->assignment_id).'&studentid='.s($item->userid)
+                	           , 'assignment', s(substr($item->assignment_name, 0, 15)), 700, 800, 'Assignment: '.s($item->assignment_name), 'none', true);
+                        }
+                        else
+                        {
+                            echo '-';
+                        }
+                    ?>
+                </td>
+                <td align="center" class="r0 c0">
+                    <?php
+                        $grade_info = grade_get_grades($cm->course, 'mod', 'assignmentdistrib', $cm->instance, array($item->id));
+                     //   print_object($grade_info);
+                        $disable_change = false;
+                        if(empty($grade_info->items)) {
+                            $grade = null;
+                            $grade_str = "-";
+                        } else {
+
+                            $final_grade = $grade_info->items[0]->grades[$item->id];
+                            $grademax = $grade_info->items[0]->grademax;
+                            $final_grade->formatted_grade = round($final_grade->grade,2) .'&nbsp;/&nbsp;' . round($grademax,2);
+
+//                            print_object($final_grade);
+//
+//                            print_object($grade_info);
+
+                            $grade = $grade_info->items[0]->grades[$item->id]->grade;
+//                            $grade_str = $grade_info->items[0]->grades[$item->id]->str_grade;
+
+                            $grade_str = $grade_info->items[0]->grades[$item->id]->formatted_grade ;
+                            
+                            if($grade_info->items[0]->grades[$item->id]->overridden) {
+                                $disable_change = true;
+                            }
+                            if($grade_info->items[0]->grades[$item->id]->locked) {
+                                $disable_change = true;
+                            }
+                            if(!$grade){
+                               $grade_str = "-";
+
+                            }
+                        }    
+                    
+                        echo($grade_str);
+                    ?>
+                </td>
+            	<td align="center" class="r0 c0">
+            	    <?php echo format_text($item->comment, $item->commentformat) ?>
+            	</td>
+            	<td align="center" class="r0 c0">
+                    <?php
+                       if($item->timemodified) {
+                           $userdate = userdate($item->timemodified);
+                           
+                           if($item->assignmenttype == ASSIGNMENTDISTRIB_ASSIGNMENTTYPE_UPLOADSINGLE) {
+                               echo '<a target="_blank" href="'.assignmentdistrib_download_url($item->var1).'">'.$userdate.'</a>';
+                           } else if($item->assignmenttype == ASSIGNMENTDISTRIB_ASSIGNMENTTYPE_ONLINETEXT) {
+                               echo link_to_popup_window($CFG->wwwroot.'/mod/assignmentdistrib/submitted_content.php?id='.s($cm->id).'&uid='.s($item->userid)
+                                   , 'submitted_content', $userdate, 600, 600, null, 'none', true);
+                           } else {
+                               echo $userdate;
+                           }
+                       } else {
+                           echo '-';
+                       }
+                    ?>
+            	</td>
+            	<td align="center" class="r0 c0">
+            	    <?php
+            	        if($item->timegraded) {
+            	            echo userdate($item->timegraded);
+            	        } else {
+            	            echo '-';
+            	        }
+            	    ?>
+            	</td>
+            	<td align="center" nowrap class="r0 c0">
+                   <?php
+//                       echo $item->id;
+            	       echo link_to_popup_window("/mod/assignmentdistrib/grade.php?id=$cm->id&studentid=$item->id&comment=1"
+            	           , 'grade', ($grade === null ? 'Grade' : 'Upgrade'), 700, 680, 'Grade student', 'none', true);
+            	   ?>
+                </td>
+            </tr>
+        	<?php
+        }
+        if(!empty($unassigned_students))
+        {
+            ?>
+            <tr class="r1">
+                <td align="left"   class="header c1" colspan="7">
+                    <strong>Unassigned students (<?php p(count($unassigned_students)); ?>)</strong>
+                </td>
+            </tr>
+            <?php
+            foreach($unassigned_students as $item)
+            {
+                $stud_assignment = get_record_select('assignmentdistrib_assignments', "createdbyuserid = $item->id and assignmentdistribid = $assignmentdistrib->id", '*');
+                ?>
+                <tr class="r0">
+                    <td align="left"   class="cell c0" style="padding-left: 7px;" nowrap="">
+                        <?php /* echo s($item->firstname).' '.s($item->lastname); */ ?>
+                        <a href="/moodle/user/view.php?id=<?php echo $item->id; ?>"> <?php echo s($item->firstname).' '.s($item->lastname); ?></a>
+                    </td>
+                    <td align="center" class="r0 c0">
+                    <?php
+						if ($stud_assignment && !$stud_assignment->approved) {
+							echo link_to_popup_window($CFG->wwwroot."/mod/assignmentdistrib/suggest.php?id=$cm->id&mode=suggestedit&aid=$stud_assignment->id"
+                	            , 'grade', 'View proposal', 700, 900, 'View proposed assignment', 'none', true);
+						}
+						else echo '-';
+					?>    
+                    </td>
+                    <td align="center" class="r0 c0">-</td>
+                	<td align="center" class="r0 c0">
+                    <?php
+                    if (is_object($stud_assignment) && $stud_assignment->approved) echo "<i>Proposal approved</i>";
+                    ?>
+                    </td>
+                	<td align="center" class="r0 c0">-</td>
+                	<td align="center" class="r0 c0">-</td>
+                	<td align="center" nowrap class="r0 c0">-
+                	    <?php /*
+                	        echo link_to_popup_window("/mod/assignmentdistrib/grade.php?id=$cm->id&studentid=$item->id&comment=1"
+                	            , 'grade', ($item->grade == "-" ? 'Grade' : 'Upgrade'), 700, 680, 'Grade student', 'none', true); */
+                	    ?>
+                    </td>
+                </tr>
+                <?php
+            }
+        }
+    ?>
+</table>

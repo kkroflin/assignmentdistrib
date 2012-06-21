@@ -1,0 +1,82 @@
+<?php
+print_heading(get_string('viewassignment', 'assignmentdistrib'));
+print_simple_box_start('center', '90%', '', '', 'generalbox', 'view');
+?>
+
+<center>
+<?php
+if($notdeleted) {
+    ?>
+    <div class="error">
+        Assignment was not deleted because it is assigned to some students.
+    </div>
+    <?php
+}
+if($notmoved) {
+    ?>
+    <div class="error">
+        Assignment was not moved because it is assigned to some students.
+    </div>
+    <?php
+}
+?>
+<table cellpadding="5" width="100%">
+    <tr valign="top">
+        <td align="right" nowrap><strong><?php  print_string('name') ?>:</strong></td>
+        <td align="left" width="100%"><?php p($name) ?></td>
+    </tr>
+    <tr valign="top">
+        <td align="right" nowrap><strong><?php print_string("description", "assignmentdistrib") ?>:</strong></td>
+        <td align="left"><?php echo format_text($description, $descriptionformat); ?></td>
+    </tr>
+    <tr valign="top">
+        <td colspan="2"><hr /></td>
+    </tr>
+
+    <tr valign="top">
+        <td align="right" nowrap><strong><?php  print_string('groupstudentmin', 'assignmentdistrib') ?><sup>(1)</sup>:</strong></td>
+        <td><?php p($groupstudentmin) ?></td>
+    </tr>
+    <tr valign="top">
+        <td align="right" nowrap><strong><?php  print_string('groupstudentmax', 'assignmentdistrib') ?><sup>(1)</sup>:</strong></td>
+        <td><?php p($groupstudentmax) ?></td>
+    </tr>
+    <tr valign="top">
+        <td align="right" nowrap><strong><?php  print_string('maxnumberofrepeats', 'assignmentdistrib') ?><sup>(2)</sup>:</strong></td>
+        <td><?php p($maxnumberofrepeats) ?></td>
+    </tr>
+</table>
+<?php
+    if(!$available) {
+        ?>
+        <p align="center"><strong>
+        <?php print_string('assignmentunavailable', 'assignmentdistrib'); ?>
+        </strong></p>
+        <?php
+    }
+?>
+<div style="color: gray; margin-top: 15px; font-size: smaller; text-align: left;">
+    <sup>(1)</sup> <?php  print_string('notice_group_add', 'assignmentdistrib'); ?><br>
+    <sup>(2)</sup> <?php  print_string('notice_maxnumberofrepeats', 'assignmentdistrib'); ?><br>
+</div>
+<form id="delete" method="post" action="view.php<?php p("?id=$cm->id&tab=assignments&mode=view&aid=$aid"); ?>">
+<!-- These hidden variables are always the same -->
+<input type="hidden" name="course"        value="<?php  p($form->course) ?>" />
+<input type="hidden" name="sesskey"       value="<?php  p($form->sesskey) ?>" />
+<input type="hidden" name="coursemodule"  value="<?php  p($form->coursemodule) ?>" />
+<input type="hidden" name="section"       value="<?php  p($form->section) ?>" />
+<input type="hidden" name="instance"      value="<?php  p($form->instance) ?>" />
+
+<input type="hidden" name="checkassigment[<?php p($aid) ?>]" value="ok" />
+<br />
+<input type="submit" name="edit" value="<?php print_string('edit', 'assignmentdistrib') ?>" />
+&nbsp;&nbsp;&nbsp;
+<input type="submit" name="delete" value="<?php print_string('delete', 'assignmentdistrib') ?>" onclick="javascript: return confirm('<?php print_string('confirmdelete', 'assignmentdistrib') ?>');" />
+&nbsp;&nbsp;&nbsp;
+<input type="submit" name="cancel" value="<?php print_string('return', 'assignmentdistrib') ?>" />
+</center>
+</form>
+<br />
+<?php
+print_simple_box_end();
+?>

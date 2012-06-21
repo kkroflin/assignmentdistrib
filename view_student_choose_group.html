@@ -1,0 +1,276 @@
+<?php
+//print_heading($record->name);
+
+print_heading(get_string('chooseassignmentgroup', 'assignmentdistrib'), 'center', 3);
+print_simple_box_start('center', '', '', '', 'generalbox', 'assignment');
+
+optional_variable($error, false);
+optional_variable($errormin, false);
+optional_variable($errormax, false);
+optional_variable($errormembercheck, false);
+optional_variable($groupmembers, array());
+optional_variable($groupmemberscount, 1);
+optional_variable($groupname, '');
+?>
+<script type="text/javascript">
+    function toggle_submit(bool) {
+        if (bool=="1") {
+            document.getElementById("form_submit").disabled = "";
+        }
+        else {
+            document.getElementById("form_submit").disabled = "disabled";
+        }
+    }
+</script>
+
+
+
+<?php
+//print_object($aid);
+//print_object($gid);
+
+if (isset($changes_saved) && $changes_saved) echo "<p style='color:green'><b>Changes saved!</b></p>";
+
+if ($mode=="addgroup" || $mode=="editgroup") {
+?>
+
+
+<form name="getassignment2"
+      method="post"
+      action="group.php?id=<?php p($cm->id) ?>&mode=<?php echo $mode; 
+      if (isset($aid)){?>&aid=<?php echo $aid;}
+      if (isset($gid)){?>&gid=<?php echo $gid; }?>">
+
+<?php
+}
+else {
+?>
+<form name="getassignment2" method="post" action="view.php?id=<?php p($cm->id) ?>&mode=get&page=choose">
+<?php
+}
+?>
+<table cellpadding="5" class="generaltable" width="100%">
+    <tr>
+        <td class="cell c0">
+            <div style="font-weight: bold"><?php p($assignment->name) ?></div>
+            <div><?php $assignment->description; ?></div>
+            <br />
+            <table border="0" cellpadding="0">
+                <tr>
+                    <td <?php if($errormin){ echo 'class="error"'; } ?> ><em><?php print_string('groupstudentmin', 'assignmentdistrib') ?></em>:&nbsp;&nbsp;&nbsp;</td>
+                    <td <?php if($errormin){ echo 'class="error"'; } ?> ><?php p($assignment->groupstudentmin) ?></td>
+                </tr>
+                <tr>
+                    <td <?php if($errormax){ echo 'class="error"'; } ?> ><em><?php print_string('groupstudentmax', 'assignmentdistrib') ?>:</em>&nbsp;&nbsp;&nbsp;</td>
+                    <td <?php if($errormax){ echo 'class="error"'; } ?> ><?php p($assignment->groupstudentmax) ?></td>
+                </tr>
+                <?php
+                    if($errormin || $errormax) {
+                        echo '<tr><td colspan="2">';
+                        echo '<div class="error" style="font-weight: bold"><br>';
+                        if($errormin) {
+                            echo 'Group doesn\'t have enough group members.';
+                        } else {
+                            echo 'Group has too many group members.';
+                        }
+                        echo '</div>';
+                        echo '</td></tr>';
+                    }
+                ?>
+            </table>
+        </td>
+    </tr>
+</table>
+<br />
+
+<div>
+<?php
+if($errormembercheck) {
+    echo '<div class="error">';
+        print_string('selectedstudentsassigned', 'assignmentdistrib');
+    echo '</div>';
+}
+echo '<br />';
+?>
+<table cellspacing="0" cellpadding="5" border="0" align="center">
+    <?php
+    if($assignmentdistrib->allowgroupmarket)
+    {
+        ?>
+        <tr>
+            <td colspan="3">
+                <table cellpadding="15" class="generaltable" width="100%">
+                    <tr>
+                        <td class="cell c0">
+                            <b><?php print_string("allowothertojoin", "assignmentdistrib") ?> </b>&nbsp;&nbsp;
+                            <?php
+                                $options[0] = get_string('no');
+                                $options[1] = get_string('yes');
+                                if($errormin) {
+                                    choose_from_menu($options, 'allowother', $market_enabled, '', "toggle_submit(this.value)");
+                                }
+                                else if ($errormax) {
+
+//                                    echo "errormax";
+                                    
+                                    choose_from_menu($options, 'allowother', $market_enabled, '', "toggle_submit(0)");
+                                }
+                                else {
+                                    choose_from_menu($options, 'allowother', $market_enabled, '', "toggle_submit(1)");
+                                }
+                            ?>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <?php
+    }
+    ?>
+    <tr>
+        <td valign="top"><strong><?php print_string('availablestudents', 'assignmentdistrib') ?> :</strong></td>
+        <td>&nbsp;</td>
+        <td valign="top"><strong><?php print_string('studentsinagroup', 'assignmentdistrib'); echo ' ('.$groupmemberscount.')'; ?>:</strong></td>
+    </tr>
+    <?php /*
+    <tr>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td valign="top"><?php echo s($USER->firstname).' '.s($USER->lastname).', '.s($USER->email); ?></td>
+    </tr>
+    */ ?>
+    <tr>
+        <td valign="top">
+            <select multiple="" id="groupmembers_add" size="20" name="groupmembers_add[]">
+                <?php
+                $count_1=0;
+                foreach($unasignedstudents as $student)
+                {
+                    if($student->id == $USER->id || in_array($student->id, $groupmembers)) {
+                        continue;
+                    }
+                    echo '<option value="'.$student->id.'">'.s($student->firstname).' '.s($student->lastname).', '.s($student->email).'</option>';
+                    $count_1++;
+                }
+                ?>
+            </select>
+        </td>
+        <td valign="top" align="center">
+            <br/>
+            <input type="submit" value="→" id="add" name="add" />
+            <br/>
+            <br/>
+            <input type="submit" value="←" id="remove" name="remove" />
+            <br/>
+        </td>
+        <td valign="top">
+            <select multiple="" id="groupmembers_remove" size="20" name="groupmembers_remove[]">
+                <?php
+                if (!$isteacher) echo '<option value="'.$USER->id.'">'.s($USER->firstname).' '.s($USER->lastname).', '.s($USER->email).'</option>';
+                $count_2=0;
+                foreach($unasignedstudents as $student)
+                {
+                    if(in_array($student->id, $groupmembers) && $student->id != $USER->id) {
+                        echo '<option value="'.$student->id.'">'.s($student->firstname).' '.s($student->lastname).', '.s($student->email).'</option>';
+                        $count_2++;
+                    }
+                }
+                ?>
+            </select>
+            <?php
+                foreach($unasignedstudents as $student)
+                {
+                    if(in_array($student->id, $groupmembers) && $student->id != $USER->id) {
+                        echo '<input type="hidden" name="groupmembers[]" value="'.$student->id.'" />';
+                    }
+                }
+            ?>
+            <br/>
+        </td>
+    </tr>
+<?php
+if ($mode=="addgroup" || $mode=="editgroup")
+{
+?>
+    <tr>
+        <td valign="top" align="center" colspan="3">
+            <strong><?php print_string('chooseleader', 'assignmentdistrib') ?> :</strong>
+            
+            <select id="leaderid" name="leaderid">
+            <?php
+                //var_dump($groupmembers);
+                foreach($unasignedstudents as $student)
+                {
+                    if(in_array($student->id, $groupmembers)) {
+                        if ($leaderid == $student->id) $checked = "selected='selected'";
+                        else $checked = "";
+                        echo '<option '.$checked.' value="'.$student->id.'">'.s($student->firstname).' '.s($student->lastname).', '.s($student->email).'</option>';
+                    }
+                }
+            ?>
+            </select>
+        </td>
+    </tr>
+<?php
+}
+?>
+</table>
+</div>
+
+<input type="hidden" name="assignmentdistribtype" value="<?php p($assignmentdistribtype) ?>" />
+<input type="hidden" name="chooseassignment[<?php p($assignment->id)?>]" value="true" />
+
+<input type="hidden" name="course"        value="<?php  p($form->course) ?>" />
+<input type="hidden" name="sesskey"       value="<?php  p($form->sesskey) ?>" />
+<input type="hidden" name="coursemodule"  value="<?php  p($form->coursemodule) ?>" />
+<input type="hidden" name="section"       value="<?php  p($form->section) ?>" />
+<input type="hidden" name="instance"      value="<?php  p($form->instance) ?>" />
+<div style="text-align:center">
+<br />
+<?php
+    if ($mode=="editgroup")
+    {
+        ?>
+        <input id="form_submit" <?php if ($errormax || ($error && !$market_enabled)) echo 'disabled="disabled"'; ?> type="submit" name="save" value="<?=get_string('savechanges', 'assignmentdistrib')?>" />
+        <br /><br />
+        <?php
+        if (!$isteacher)
+        {
+            ?>
+            <input type="submit" name="back" value="<?php print_string('back', 'assignmentdistrib') ?>" />
+            &nbsp;&nbsp;&nbsp;
+            <?php
+        }
+    }
+    else
+    {
+        ?>
+        <input id="form_submit" <?php if ($errormax || ($error && !$market_enabled)) echo 'disabled="disabled"'; ?> type="submit" name="getfinal" value="<?=get_string('getassignment', 'assignmentdistrib')?>" />
+        <br /><br />
+        
+        <input type="submit" name="back" value="<?php print_string('back', 'assignmentdistrib') ?>" />
+        &nbsp;&nbsp;&nbsp;
+        <?php
+    }
+    
+    if ($mode=="addgroup" || $mode=="editgroup") {
+        echo "<input type='button' name='cancel' onclick='window.close()' value='".get_string('close', 'assignmentdistrib')."' />";
+    } else {
+        echo "<input type='submit' name='cancel' value='".get_string('cancel')."' />";     
+    }
+?>
+</div>
+
+
+<?php if ($error && !$market_enabled) { ?>
+<script>
+    if (document.getElementById('leaderid').value) document.getElementById('form_submit').disabled="";
+</script>
+<?php } ?>
+
+</form>
+<?php
+echo '<br />';
+print_simple_box_end();
+
+?>

@@ -1,0 +1,330 @@
+<?php
+if($mode == 'add') {
+    print_heading(get_string('addnewassignment', 'assignmentdistrib'));
+}
+else if ($mode == 'suggest') {
+    print_heading(get_string('suggestassignment', 'assignmentdistrib'));
+}
+else {
+    print_heading(get_string('editassignment', 'assignmentdistrib'));
+}
+print_simple_box_start('center', '', '', '', 'generalbox', 'addnew');
+
+if(isset($inserted)&&$inserted) {
+    print_heading(get_string('assignmentadded', 'assignmentdistrib'), 'left', 5);
+}
+//die();
+if(isset($errornameempty)&&$errornameempty) {
+    print_heading(get_string('emptyname', 'assignmentdistrib'), 'left', 5, 'error');
+}
+if(isset($errorinteger)&&$errorinteger) {
+    print_heading(get_string('errorinteger', 'assignmentdistrib'), 'left', 5, 'error');
+}
+
+if(isset($errorminmax)&&$errorminmax) {
+    print_heading(get_string('errorminmax', 'assignmentdistrib'), 'left', 5, 'error');
+}
+
+if($mode == 'add') {
+    echo <<<FORM
+    <form name="addnew" method="post" action="view.php?id=$cm->id&tab=assignments&mode=add">
+FORM;
+}
+else if ($mode == 'suggest')
+{
+    echo <<<FORM
+    <form name="suggestnew" method="post" action="suggest.php?id=$cm->id&mode=suggest">
+FORM;
+}
+else if ($mode == 'suggestedit')
+{
+    echo <<<FORM
+    <form name="suggestedit" method="post" action="suggest.php?id=$cm->id&mode=suggestedit&aid={$aid}">
+FORM;
+}
+else {
+    if(isset($return) && !empty($return)) {
+        $return = "&return=$return";
+    } else {
+        $return = '';
+    }
+    echo <<<FORM
+    <form name="edit"   method="post" action="view.php?id=$cm->id&tab=assignments&mode=edit&aid={$aid}{$return}">
+FORM;
+}
+?>
+<table cellpadding="5">
+    <tr valign="top">
+        <td align="right" <?php if(isset($errornameempty)&&$errornameempty) { echo 'class="error"'; } ?>><strong><?php  print_string('name') ?>:</strong></td>
+        <td>
+            <input type="text" name="name" size="30" value="<?php p(isset($name)?$name:"") ?>" />
+        </td>
+    </tr>
+    <tr valign="top">
+        <td align="right"><strong><?php print_string("description", "assignmentdistrib") ?>:</strong>
+        <br /><br />
+        <?php
+            helpbutton("writing", get_string("helpwriting"), "moodle", true, true);
+            echo "<br />";
+            helpbutton("questions", get_string("helpquestions"), "moodle", true, true);
+            echo "<br />";
+            if ($usehtmleditor) {
+                helpbutton("richtext", get_string("helprichtext"), "moodle", true, true);
+            } else {
+                emoticonhelpbutton("form", "description");
+            } 
+        ?>
+        </td>
+        <td>
+        <?php
+            print_textarea($usehtmleditor, 20, 60, 680, 400, "description", isset($description)?$description:"");
+        
+            if ($usehtmleditor) {
+                echo '<input type="hidden" name="descriptionformat" value="'.FORMAT_HTML.'" />';
+            } else {
+                echo '<div align="right">';
+                helpbutton("textformat", get_string("formattexttype"));
+                print_string("formattexttype");
+                echo ':&nbsp;';
+                choose_from_menu(format_text_menu(), "descriptionformat", $defaultformat, ""); 
+                echo '</div>';
+            }
+        ?>
+        </td>
+    </tr>
+<?php
+    if ($mode!="suggest" && $mode!="suggestedit" || $isteacher)
+    {
+?>
+    <tr valign="top">
+        <td align="right"><strong><?php  print_string('groupstudentmin', 'assignmentdistrib') ?><sup>(1)</sup>:</strong></td>
+        <td>
+            <input type="text" name="groupstudentmin" size="5" value="<?php p($groupstudentmin) ?>" />
+           
+        </td>
+    </tr>
+    <tr valign="top">
+        <td align="right"><strong><?php  print_string('groupstudentmax', 'assignmentdistrib') ?><sup>(1)</sup>:</strong></td>
+        <td>
+            <input type="text" name="groupstudentmax" size="5" value="<?php p($groupstudentmax) ?>" />
+            
+        </td>
+    </tr>
+    <tr valign="top">
+        <td align="right"><strong><?php  print_string('maxnumberofrepeats', 'assignmentdistrib') ?><sup>(2)</sup>:</strong></td>
+        <td>
+            <input type="text" name="maxnumberofrepeats" size="5" value="<?php p($maxnumberofrepeats) ?>" />
+        </td>
+    </tr>
+    
+    <tr valign="top">
+        <td align="right"><strong><?php  print_string('assignmentunavailable', 'assignmentdistrib') ?>:</strong></td>
+        <td>
+            <input type="checkbox" name="available" <?php if (!$available) p("checked='checked'")?> value="0"/>
+        </td>
+    </tr>
+<?php
+}
+?>
+</table>
+<?php if ($isteacher){ ?>
+<div style="color: gray; margin-top: 15px; font-size: smaller;">
+    <sup>(1)</sup> <?php  print_string('notice_group_add', 'assignmentdistrib'); ?><br>
+    <sup>(2)</sup> <?php  print_string('notice_maxnumberofrepeats', 'assignmentdistrib'); ?><br>
+</div>
+<?php }
+if ($mode=="suggestedit") {
+?>
+<input type="hidden" name="createdbyuserid" value="<?php p($createdbyuserid) ?>" />
+
+<?php
+}
+if($mode == 'edit'){?>
+    <input type="hidden" name="olddescription" id="olddescription" value="<?php p($description) ?>" />
+    <input type="hidden" name="oldgroupstudentmin" id="oldgroupstudentmin" value="<?php p($groupstudentmin) ?>" />
+    <input type="hidden" name="instances" id="instances" value="<?php p($count_instances) ?>" />
+    <input type="hidden" name="oldgroupstudentmax" id="oldgroupstudentmax" value="<?php p($groupstudentmax) ?>" />
+    <input type="hidden" name="oldmaxnumberofrepeats" id="oldmaxnumberofrepeats" value="<?php p($maxnumberofrepeats) ?>" />
+    <input type="hidden" name="oldavailable" id="oldavailable" value="<?php p($available) ?>" /><?php
+    if ($worktype == ASSIGNMENTDISTRIB_WORKTYPE_TEAM){?>
+        <input type="hidden" name="groupminstatus" id="groupminstatus" value="<?php p($groupminstatus) ?>" />
+        <input type="hidden" name="groupmaxstatus" id="groupmaxstatus" value="<?php p($groupmaxstatus) ?>" />
+    <?php }
+} ?>
+
+<!-- These hidden variables are always the same -->
+<input type="hidden" name="course"        value="<?php  p($form->course) ?>" />
+<input type="hidden" name="sesskey"       value="<?php  p($form->sesskey) ?>" />
+<input type="hidden" name="coursemodule"  value="<?php  p($form->coursemodule) ?>" />
+<input type="hidden" name="section"       value="<?php  p($form->section) ?>" />
+<input type="hidden" name="instance"      value="<?php  p($form->instance) ?>" />
+<input type="hidden" name="mode"          value="<?php  p($mode) ?>" />
+<div style="text-align: center">
+<br />
+
+<?php
+if ($isteacher && $mode=="suggestedit") {
+?>
+<span style="font-style: italic; font-size: 0.8em">You can modify assignment, then save and approve it to student
+or you can save a copy.<br/>Tip: To enable other students to choose it uncheck 'Assignment is unavailable'</span><br/><br/>
+<input type="submit" name="approve" value="Save and approve" />
+&nbsp;&nbsp;&nbsp;
+<input type="submit" name="reject" value="Reject" />
+&nbsp;&nbsp;&nbsp;
+<?php
+}
+else {
+?>
+<input type="submit" name="submit" value="<?php
+    print_string($mode == 'add' ? 'add' : 'save', 'assignmentdistrib');
+    echo '"';
+    if($mode == 'edit'){
+        echo 'onclick="return check_edit();"';
+    }
+?> />
+&nbsp;&nbsp;&nbsp;
+<?php
+}
+if ($mode == 'edit' || ($isteacher && $mode=='suggestedit')){
+echo '<input type="submit" name="copy" value="';
+print_string('saveasnew', 'assignmentdistrib');
+echo '" >&nbsp;&nbsp;&nbsp;';
+}
+if ($mode!="suggest" && $mode!="suggestedit")
+{
+?>
+<input type="submit" name="cancel" value="<?php  print_string('cancel', 'assignmentdistrib') ?>" />
+<?
+} else {
+?>
+<input type="button" onclick="window.close();" value="Close" />
+<?php
+}
+?>
+</div>
+</form>
+<br />
+<?php
+print_simple_box_end();     /// Add New
+?>
+
+
+<script language="javascript">
+
+function check_edit()
+{
+    var worktype = <?php echo $worktype; ?>;
+    var distributiontype = <?php echo $distributiontype ?>;
+
+    //console.log(distributiontype);
+ //   console.log(worktype);
+
+    var message="";
+    var instances=0;
+    var oldelem = document.getElementById("oldavailable");
+    var oldavailable = parseInt(oldelem.getAttribute('value'));
+//        console.log(oldavailable);
+
+    var newavailable = (document.edit.available.checked)?0:1;
+//        console.log(newavailable);
+
+    if((newavailable != oldavailable)&&(newavailable == 0)){
+        oldelem = document.getElementById("instances");
+        instances = parseInt(oldelem.getAttribute('value'));
+            
+        //console.log(instances);
+        if (instances > 0){
+            message+="This assignment has already been assigned. Making it unavailable will not unassign it but only prevent further assigning.\n";
+        }
+    }
+
+    var newmin = parseInt(document.edit.groupstudentmin.value);
+    var newmax = parseInt(document.edit.groupstudentmax.value);
+    var newmaxrepeat = parseInt(document.edit.maxnumberofrepeats.value);
+
+    if(newmin<1 || newmax < 1){
+        
+        alert('The values "Minimum number of students in a group" and "Maximum number of students in a group" must be positive integers.');
+        return false;
+    }
+
+    if (isNaN(newmax) || isNaN(newmin) || isNaN(newmaxrepeat)){
+        alert('The values "Minimum number of students in a group", "Maximum number of students in a group" and "Maximum number of same assignment" must be integers.');
+         return false;
+
+    }
+
+
+//        console.log(newmin);
+//        console.log(newmax);
+
+    if (newmin > newmax){
+         alert('The minimum number of students in a group must not be greater than the maximum number of students in a group.');
+         return false;
+    }
+
+    if (worktype == 1){
+        oldelem = document.getElementById("oldgroupstudentmin");
+        var oldmin = parseInt(oldelem.getAttribute('value'));
+     
+        oldelem = document.getElementById("oldgroupstudentmax");
+        var oldmax = parseInt(oldelem.getAttribute('value'));
+
+        oldelem = document.getElementById("groupminstatus");
+        var currentmin = parseInt(oldelem.getAttribute('value'));
+
+        oldelem = document.getElementById("groupmaxstatus");
+        var currentmax = parseInt(oldelem.getAttribute('value'));
+
+       // console.log(oldmin);
+       // console.log(oldmax);
+
+        
+        
+        if (newmin > oldmin){
+            if (currentmin < newmin){
+                message+="One or more groups which this assignment has previously been assigned to has fewer members than the new minimum number of members is.\n";
+            }
+        }
+
+        if (newmax < oldmax){
+            if (currentmax > newmax){
+                message+="One or more groups which this assignment has previously been assigned to has more members than the new maximum number of members is.\n";
+            }
+        }
+        
+    }
+
+    if(distributiontype == 3){
+        oldelem = document.getElementById("oldmaxnumberofrepeats");
+        var oldmaxrepeat = parseInt(oldelem.getAttribute('value'));
+        
+
+        //console.log(oldmaxrepeat);
+        //console.log(newmaxrepeat);
+
+        if (((newmaxrepeat != 0)&&(newmaxrepeat < oldmaxrepeat))||((newmaxrepeat != 0)&&(oldmaxrepeat == 0))){
+            oldelem = document.getElementById("instances");
+            var instances = parseInt(oldelem.getAttribute('value'));
+ //           console.log(newmaxrepeat);
+ //           console.log(instances);
+            if (instances > newmaxrepeat){
+                message+="This assignment has already been assigned more times than the new maximum number of repeats is.\n";
+            }
+        }
+    }
+
+    if (message != ""){
+        message+="\nAre you sure you want to continue?";
+        var ans=confirm(message);
+        if (!ans){
+           return false;
+        }
+    }
+    
+ //       console.log(message);
+
+    return true;
+}
+
+</script>

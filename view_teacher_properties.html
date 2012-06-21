@@ -1,0 +1,39 @@
+<?php
+$record = get_record("assignmentdistrib", "id", $cm->instance);
+
+print_heading($record->name);
+
+//TODO: print_box();
+
+print_simple_box_start('center', '', '', '', 'generalbox', 'description');
+echo format_text($record->description, $record->descriptionformat);
+print_simple_box_end();
+
+
+print_simple_box_start('center', '', '', '', 'generalbox', 'dates');
+echo '<table>';
+if ($record->timeavailable) {
+    echo '<tr><td class="c0"><strong>'.get_string('availabledate','assignmentdistrib').':</strong></td>';
+    echo '    <td class="c1">'.userdate($record->timeavailable).'</td></tr>';
+}
+if ($record->timedue) {
+    echo '<tr><td class="c0"><strong>'.get_string('duedate','assignmentdistrib').':</strong></td>';
+    echo '    <td class="c1">'.userdate($record->timedue).'</td></tr>';
+}
+if ($record->timeavailable || $record->timedue) {
+    echo '<tr><td colspan="2">&nbsp;</td></tr>';
+}
+echo '<tr><td class="c0"><strong>'.get_string('worktype','assignmentdistrib').':</strong></td>';
+echo '    <td class="c1">';
+if($record->worktype == ASSIGNMENTDISTRIB_WORKTYPE_TEAM) {
+    echo get_string('team','assignmentdistrib');
+}
+else {
+    echo get_string('individual','assignmentdistrib');
+}
+echo '</td></tr>';
+
+echo '</table>';
+print_simple_box_end();
+
+?>

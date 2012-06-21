@@ -1,0 +1,116 @@
+<?php
+$showdescription = optional_param('showdescription', false, PARAM_BOOL);
+
+print_heading("Assignment Instances");
+print_simple_box_start('center', '80%', '', 0);
+$worktypeq = get_record('assignmentdistrib', 'id', $cm->instance);
+$worktype = $worktypeq->worktype;
+?>
+<center>
+<table  class="generaltable" width="60%" cellpadding="0" cellspacing="0">
+    <tr>
+    	<th class="header c0" style="padding:2px;" width="60%" colspan="3">
+            <?php
+                //get assignment title
+                $titleq = get_record('assignmentdistrib_assignments', 'assignmentdistribid', $cm->instance, 'id', $aid);
+                echo (s($aid)." - ".s($titleq->name));
+            ?>
+        </th>
+    </tr>
+    <?php
+    if ($worktype == 0) {
+        ?>
+        <tr>
+            <td class="header c0" style="padding:2px; text-alignment:left; font-weight:bold" width="10%">
+                Userid
+            </td>
+            <td class="header c0" style="padding:2px;text-alignment:left; font-weight:bold" width="20%">
+                Username
+            </td>
+            <td class="header c0" style="padding:2px;text-alignment:left; font-weight:bold" width="30%">
+                Full name
+            </td>
+        </tr>
+        <?php
+            
+//        $students = get_records_sql("SELECT userid, {$CFG->prefix}user.firstname, {$CFG->prefix}user.lastname, {$CFG->prefix}user.username FROM {$CFG->prefix}assignmentdistrib_submissions
+//                                    JOIN {$CFG->prefix}user ON userid = {$CFG->prefix}user.id
+//                                    WHERE assignmentdistrib_assignments_id = $aid");
+        $students = get_records_sql("SELECT userid FROM {$CFG->prefix}assignmentdistrib_submissions
+                                     WHERE assignmentdistrib_assignments_id = $aid");
+//        print_object($students);
+        if($students) {
+            foreach($students as $student){
+                $studentdata = get_complete_user_data('id', $student->userid);
+                $student->firstname = $studentdata->firstname;
+                $student->lastname = $studentdata->lastname;
+                $student->username = $studentdata->username;
+                ?>
+                <tr>
+                    <td class="cell c0"><?php echo $student->userid; ?></td>
+                    <td class="cell c0"><?php echo $student->username; ?></td>
+                    <td class="cell c0">
+                        <a href="/moodle/user/view.php?id=<?php echo $student->userid; ?>">
+                            <?php echo ($student->firstname." ".$student->lastname); ?>
+                        </a>
+                    </td>
+                </tr>
+                <?php
+            }
+        }
+    } else {
+        ?>
+        <tr>
+            <td class="header c0" style="padding:2px; text-alignment:left; font-weight:bold" width="10%">
+                Group ID
+            </td>
+            <td class="header c0" style="padding:2px;text-alignment:left; font-weight:bold" width="20%">
+                Group name
+            </td>
+            <td class="header c0" style="padding:2px;text-alignment:left; font-weight:bold" width="30%">
+                Group leader
+            </td>
+        </tr>
+        <?php
+            
+//        $groups = get_records_sql("SELECT assignmentdistrib_groups_id, leaderuserid, firstname, lastname, {$CFG->prefix}assignmentdistrib_groups.name FROM {$CFG->prefix}assignmentdistrib_submissions
+//                                    JOIN {$CFG->prefix}assignmentdistrib_groups ON assignmentdistrib_groups_id = {$CFG->prefix}assignmentdistrib_groups.id
+//                                    JOIN {$CFG->prefix}users ON leaderuserid = {$CFG->prefix}users.id
+//                                    WHERE assignmentdistrib_assignments_id = $aid");
+        $groups = get_records_sql("SELECT assignmentdistrib_groups_id, leaderuserid, {$CFG->prefix}assignmentdistrib_groups.name FROM {$CFG->prefix}assignmentdistrib_submissions
+                                    JOIN {$CFG->prefix}assignmentdistrib_groups ON assignmentdistrib_groups_id = {$CFG->prefix}assignmentdistrib_groups.id
+                                    WHERE assignmentdistrib_assignments_id = $aid");
+//        print_object($groups);
+        foreach($groups as $group){
+            $student = get_complete_user_data('id', $group->leaderuserid);
+            $group->firstname = $student->firstname;
+            $group->lastname = $student->lastname;
+
+            ?>
+                <tr>
+                <td class="cell c0">
+                <?php echo $group->assignmentdistrib_groups_id;  ?>
+                </td>
+                <td class="cell c0">
+                <?php echo $group->name; ?>
+                </td>
+                <td class="cell c0">
+                
+                <a href="/moodle/user/view.php?id=<?php echo $group->leaderuserid; ?>">
+                <?php echo ($group->firstname." ".$group->lastname); ?>
+                </a>
+                    
+                </td>
+                </tr>
+                <?php
+        }
+    }
+    ?>
+</table>
+<p>
+    <form method="post" action="view.php?id=<?php echo $cm->id; ?>&tab=assignments">
+        <input type="submit" name="cancel" value="Return" />
+    </form>
+</p>
+</center>
+<?php print_simple_box_end(); ?>

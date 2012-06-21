@@ -1,0 +1,251 @@
+<?php
+print_heading($record->name);
+
+if ($mode=="addgroup") {
+    print_heading(get_string('choosegroupassignment', 'assignmentdistrib'), 'center', 3);
+}
+else {
+    print_heading(get_string('chooseassignment', 'assignmentdistrib'), 'center', 3);
+}
+print_simple_box_start('center', '', '', '', 'generalbox', 'assignment');
+
+$q = get_record_sql("SELECT worktype FROM {$CFG->prefix}assignmentdistrib WHERE id = ".$cm->instance);
+$worktype = $q->worktype;
+//print_object($worktype);
+
+if ($record->distributiontype == ASSIGNMENTDISTRIB_DISTRIBUTIONTYPE_CHOOSENOREPEAT) {
+    $assignments = get_records_sql("SELECT ada.*
+                                        FROM {$CFG->prefix}assignmentdistrib_assignments AS ada
+                                        WHERE ada.assignmentdistribid = {$assignmentdistrib->id}
+                                            AND ada.available = 1
+                                            AND NOT EXISTS(
+                                                            SELECT *
+                                                                FROM {$CFG->prefix}assignmentdistrib_submissions
+                                                                WHERE assignmentdistrib_assignments_id = ada.id
+                                                            )
+                                    ");
+} else if ($record->distributiontype == ASSIGNMENTDISTRIB_DISTRIBUTIONTYPE_CHOOSEREPEATMAX) {
+    // if ($record->worktype == ASSIGNMENTDISTRIB_WORKTYPE_INDIVIDUAL)
+        $query="SELECT ada.*
+                                        FROM {$CFG->prefix}assignmentdistrib_assignments as ada
+                                        WHERE ada.assignmentdistribid = {$assignmentdistrib->id}
+                                        AND ada.available = 1
+                                        AND ((SELECT COUNT(";
+        $query.= $worktype?"DISTINCT assignmentdistrib_groups_id":"*";
+        $query.= ") FROM {$CFG->prefix}assignmentdistrib_submissions
+                                                            WHERE assignmentdistrib_assignments_id = ada.id) < ada.maxnumberofrepeats OR ada.maxnumberofrepeats = 0)
+                                    ";
+//        print_object($query);
+        $assignments = get_records_sql($query);
+    /*
+    else
+        $assignments = get_records_sql("SELECT ada.* 
+                                        FROM {$CFG->prefix}assignmentdistrib_assignments as ada
+                                        WHERE ada.assignmentdistribid = {$assignmentdistrib->id}
+                                        AND (SELECT COUNT(*) FROM {$CFG->prefix}assignmentdistrib_submissions
+                                            WHERE assignmentdistrib_assignments_id = ada.id GROUP BY assignmentdistrib_groups_id) < ada.maxnumberofrepeats
+                                    ");
+    */
+} else {
+    $assignments =  get_records_sql("SELECT *
+                                        FROM {$CFG->prefix}assignmentdistrib_assignments
+                                        WHERE assignmentdistribid = {$cm->instance}
+                                            AND available = 1
+                                        ORDER BY name");
+}
+
+
+if (!$assignments) 
+{
+    //print_object($USER);
+    $message = get_string('course', 'assignmentdistrib') . ": $course->fullname\n" .
+                                get_string('assignmentdistribution', 'assignmentdistrib') . ": $assignmentdistrib->name\n" .
+                                get_string('noavailableassignments', 'assignmentdistrib');
+    message_post_message($USER, get_teacher($course->id), $message, FORMAT_PLAIN, 'direct');
+//    message_post_message(   $USER,
+//                            get_teacher($course->id),
+//                            //get_complete_user_data('id', $subid->userid),
+//                            "Na tečaju $course->fullname, assignment distributionu $assignmentdistrib->name nema dostupnih zadataka za podjelu.",
+//                            FORMAT_PLAIN,
+//                            'direct'
+//                    );
+     $assignments_taken = get_records_sql("SELECT ada.*
+                                        FROM {$CFG->prefix}assignmentdistrib_assignments as ada
+                                        WHERE ada.assignmentdistribid = {$assignmentdistrib->id}
+                                        AND ada.available = 1
+                                        AND (SELECT COUNT(*) FROM {$CFG->prefix}assignmentdistrib_submissions
+                                                            WHERE assignmentdistrib_assignments_id = ada.id) > 0
+                                    ");
+     if ($assignments_taken)
+        echo "<div style='padding: 20px; text-align: center; font-style: italic'>".get_string('assignment_all_taken',"assignmentdistrib")."</div>";
+     else
+         echo "<div style='padding: 20px; text-align: center; font-style: italic'>".get_string('no_available_assignments',"assignmentdistrib")."</div>";
+}
+
+?>
+
+
+<? if ($mode=="addgroup") {
+?>
+<form name="getassignment2" method="post" action="group.php?id=<?php p($cm->id) ?>&mode=addgroup">
+<?php
+}
+else {
+?>
+<form name="getassignment2" method="post" action="view.php?id=<?php p($cm->id) ?>&mode=get&page=choose">
+<?php
+}
+?>
+<table cellpadding="5" class="generaltable" width="100%">
+    <?php
+    if(!empty($assignments)) {
+        foreach($assignments as $assignment)
+        {
+            ?>
+            <tr>
+                <td class="cell c0">
+                    <div style="font-weight: bold; margin-bottom: 5px;">
+                        <?php
+                            $name = explode('/', $assignment->name, 2);
+                            p($name[0]);
+                            if(count($name) == 2) {
+                                echo '<br />&nbsp;&nbsp;&nbsp;';
+                                p($name[1]);
+                            }
+                        ?>
+                    </div>
+                    <div><?php echo $assignment->description; ?></div>
+                    <br />
+                    <?php 
+                        if ($record->worktype==ASSIGNMENTDISTRIB_WORKTYPE_TEAM) { //show min and max number of students in a group
+                            echo("<table border=\"0\" cellpadding=\"0\"><tr><td><em>");
+                            print_string('groupstudentmin', 'assignmentdistrib');
+                            echo("</em>:&nbsp;&nbsp;&nbsp;</td><td>");
+                            p($assignment->groupstudentmin);
+                            echo("</td></tr><tr><td><em>");
+                            print_string('groupstudentmax', 'assignmentdistrib');
+                            echo(":</em>&nbsp;&nbsp;&nbsp;</td><td>");
+                            p($assignment->groupstudentmax);
+                            echo("</td></tr></table>");
+                        }
+                    ?>
+                    <div style="text-align: center">
+                        <?php
+                        if ($record->worktype==ASSIGNMENTDISTRIB_WORKTYPE_INDIVIDUAL) {
+                        ?>
+                            <input type="submit" name="chooseassignment_ind[<?php p($assignment->id) ?>]" value="<?php print_string('choosethisassignment', 'assignmentdistrib') ?>" />
+                        <?php
+                        } else {
+                        ?>
+                            <input type="submit" name="chooseassignment[<?php p($assignment->id) ?>]" value="<?php print_string('choosethisassignment', 'assignmentdistrib') ?>" />
+                        <?php   
+                        }
+                        ?>
+                    </div>
+                </td>
+            </tr>
+            <tr><td>&nbsp;</td></tr>
+            <?php
+        }
+    }
+    ?>
+</table>
+<?php
+if($record->allowgroupmarket && isset($assignments2)&& $assignments2) {
+    print_heading(get_string('joinexistinggroup', 'assignmentdistrib'), 'center', 3);
+?> 
+    <table cellpadding="5" class="generaltable" width="100%">
+        <?php
+        foreach($assignments2 as $assignment)
+        {
+            ?>
+            <tr>
+                <td class="cell c0">
+                    <div style="font-weight: bold; margin-bottom: 5px;">
+                        <?php
+                            $name = explode('/', $assignment->name, 2);
+                            p($name[0]);
+                            if(count($name) == 2) {
+                                echo '<br />&nbsp;&nbsp;&nbsp;';
+                                p($name[1]);
+                            }
+                        ?>
+                    </div>
+                    <div><?php echo $assignment->description; ?></div>
+                    <br />
+                    <table border="0" cellpadding="0">
+                        <tr>
+                            <td><em><?php print_string('groupstudentmin', 'assignmentdistrib') ?></em>:&nbsp;&nbsp;&nbsp;</td>
+                            <td><?php p($assignment->groupstudentmin) ?></td>
+                        </tr>
+                        <tr>
+                            <td><em><?php print_string('groupstudentmax', 'assignmentdistrib') ?>:</em>&nbsp;&nbsp;&nbsp;</td>
+                            <td><?php p($assignment->groupstudentmax) ?></td>
+                        </tr>
+                        <tr>
+                            <td><em><span style="color:green; font-weight: bold"><?php print_string('groupstudents', 'assignmentdistrib') ?>:</span></em>&nbsp;&nbsp;&nbsp;</td>
+                            <td><span style="color:green; font-weight: bold"><?php p($assignment->member_count) ?></span></td>
+                        </tr>
+                    </table>
+                    <hr/>
+                    <?php
+                    $groupmembers_sql = get_records_sql("SELECT dbas.userid AS userid, 0 AS moodle_bug
+                                                        FROM {$CFG->prefix}assignmentdistrib_submissions AS dbas
+                                                            , {$CFG->prefix}assignmentdistrib_assignments AS dbaa
+                                                        WHERE  dbas.assignmentdistrib_assignments_id = dbaa.id
+                                                            AND dbaa.assignmentdistribid = {$assignmentdistrib->id}
+                                                            AND dbas.assignmentdistrib_groups_id = {$assignment->group_id}
+                                                        ");
+                    $groupmembers_list = assignmentdistrib_make_list_int($groupmembers_sql, 'userid');
+                    $groupmembers = get_records_select('user', 'id IN ('.addslashes($groupmembers_list).')', 'lastname, firstname', 'id, firstname, lastname, email');
+                    foreach($groupmembers as $groupmember) {
+                        if($groupmember->id == $USER->id) {
+                            echo '<em>';
+                        }
+                        echo s($groupmember->firstname).' '.s($groupmember->lastname).', '.s($groupmember->email).'<br />';
+                        if($groupmember->id == $USER->id) {
+                            echo '</em>';
+                        }
+                    }
+                    ?>
+                    <div style="text-align: center">
+                        <input type="submit" name="joingroup[<?php p($assignment->group_id) ?>]" value="<?php print_string('jointhisgroup', 'assignmentdistrib') ?>" />
+                    </div>
+                </td>
+            </tr>
+            <tr><td>&nbsp;</td></tr>
+            <?php
+        }
+        ?>
+    </table>
+<?php
+}
+?>
+
+<input type="hidden" name="assignmentdistribtype" value="<?php p($assignmentdistribtype) ?>" />
+
+<input type="hidden" name="course"        value="<?php  p($form->course) ?>" />
+<input type="hidden" name="sesskey"       value="<?php  p($form->sesskey) ?>" />
+<input type="hidden" name="coursemodule"  value="<?php  p($form->coursemodule) ?>" />
+<input type="hidden" name="section"       value="<?php  p($form->section) ?>" />
+<input type="hidden" name="instance"      value="<?php  p($form->instance) ?>" />
+<div style="text-align:center">
+<br />
+<? if ($mode=="addgroup") {
+?>
+<input type="button" name="cancel" onclick="window.close()" value="<?php print_string('cancel') ?>" />
+<?php
+}
+else {
+?>
+<input type="submit" name="cancel" value="<?php print_string('cancel') ?>" />
+<?php
+}
+?>
+</div>
+</form>
+<?php
+echo '<br />';
+print_simple_box_end();
+
+?>

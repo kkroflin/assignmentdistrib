@@ -1,0 +1,180 @@
+<script language="javascript" type="text/javascript">
+    function checkUncheckAll(theElement)
+    {
+        var theForm = theElement.form, z = 0;
+        for(z=0; z<theForm.length;z++)
+        {
+            if(theForm[z].type == 'checkbox' && theForm[z].name != 'checkall')
+            {
+                theForm[z].checked = theElement.checked;
+            }
+        }
+    }
+</script>
+<?php
+
+$q = get_record_sql("SELECT worktype FROM {$CFG->prefix}assignmentdistrib WHERE id = ".$cm->instance);
+$worktype = $q->worktype;
+
+$showdescription = optional_param('showdescription', false, PARAM_BOOL);
+
+print_heading(get_string("assignmentlist", "assignmentdistrib"));
+print_simple_box_start('center', '80%', '', 0);
+?>
+<div>
+<a href="view.php<?php echo "?id=$cm->id&tab=assignments"; if(!$showdescription) { echo '&showdescription=1'; } ?>">
+    <?php
+    if($showdescription) {
+        print_string('hidedescription', 'assignmentdistrib');
+    } else {
+        print_string('showdescription', 'assignmentdistrib');
+    }
+    ?>
+</a>
+</div>
+<form id="assignmentlist" method="post" action="view.php<?php echo "?id=$cm->id&tab=assignments" ?>">
+    <table class="generaltable" width="100%" cellpadding="2">
+        <tr>
+        	<th class="header c0" align="center" width="5%" wrap="nowrap"><input name="checkall" type="checkbox" onClick="checkUncheckAll(this)"/></th>
+        	<th class="header c0" align="left"   width="100%">&nbsp;
+        	   <?php
+        	   if($showdescription) {
+        	       print_string("namedescription", "assignmentdistrib");
+        	   } else {
+        	       print_string("name", "assignmentdistrib");
+        	   }?>&nbsp;
+        	</th>
+            <th class="header c0" align="center" wrap="nowrap">&nbsp;<?php print_string("available", "assignmentdistrib"); ?>&nbsp;</th>
+        	<th class="header c0" align="center" wrap="nowrap">&nbsp;<?php print_string("groupstudentminshort", "assignmentdistrib"); ?>&nbsp;*</th>
+        	<th class="header c0" align="center" wrap="nowrap">&nbsp;<?php print_string("groupstudentmaxshort", "assignmentdistrib"); ?>&nbsp;*</th>
+        	<th class="header c0" align="center" wrap="nowrap">&nbsp;<?php print_string("instances", "assignmentdistrib"); ?>&nbsp;</th>
+        	<th class="header c0" align="center" wrap="nowrap"></th>
+        </tr>
+        <?php
+            foreach ($assignment_list as $assignment) {
+//                print_object($worktype);
+                if ($worktype == ASSIGNMENTDISTRIB_WORKTYPE_TEAM){
+                    $instance = get_record_sql("SELECT COUNT(DISTINCT assignmentdistrib_groups_id) AS instances FROM {$CFG->prefix}assignmentdistrib_submissions WHERE assignmentdistrib_assignments_id = {$assignment->id}");
+                }
+                else {
+                    $instance = get_record_sql("SELECT COUNT(DISTINCT userid) AS instances FROM {$CFG->prefix}assignmentdistrib_submissions WHERE assignmentdistrib_assignments_id = {$assignment->id}");
+                }
+//                print_object($instance);
+
+                count_records('assignmentdistrib_submissions', 'assignmentdistrib_assignments_id', $assignment->id);
+                 // print_object($assignment);
+                ?>
+               <tr>
+                    <td align="center" class="cell c0"><input name="checkassigment[<?php p($assignment->id) ?>]" type="checkbox" /></td>
+                	<td align="left"   class="cell c0">
+                        <?php
+                            if($showdescription) {
+                                echo '<strong>';
+
+                            }
+//                            if(!$assignment->approved) {
+//                                echo '<em>';
+//                            }
+                            p($assignment->name);
+                            if($showdescription) {
+                                echo '</strong><br />';
+//                            if(!$assignment->approved) {
+//                                echo '</em>';
+//                            }
+
+                                echo format_text($assignment->description, $assignment->descriptionformat);
+                            }
+                        ?>
+                    </td>
+                    <td align="center" class="cell c0"><?php p(($assignment->available)?get_string('yes'):get_string('no')) ?></td>
+                	<td align="center" class="cell c0"><?php p($assignment->groupstudentmin) ?></td>
+                	<td align="center" class="cell c0"><?php p($assignment->groupstudentmax) ?></td>
+                	<td align="center" class="cell c0"><a href="view.php?id=<?php p($cm->id)?>&tab=assignments&mode=instances&aid=<?php p($assignment->id) ?>"><?php echo $instance->instances; ?></a></td>
+                	<td align="center" nowrap class="cell c0">
+                    <?php
+                        if ($assignment->approved)
+                        {
+                    ?>
+                            <a href="view.php?id=<?php p($cm->id) ?>&tab=assignments&mode=view&aid=<?php p($assignment->id) ?>">
+                                <?php print_string("view", "assignmentdistrib") ?>
+                            </a>
+                            |
+                            <a href="view.php?id=<?php p($cm->id) ?>&tab=assignments&mode=edit&aid=<?php p($assignment->id) ?>">
+                                <?php print_string("edit", "assignmentdistrib") ?>
+                            </a>
+                    <?php
+
+                            }
+                            else
+                            {
+                                echo link_to_popup_window($CFG->wwwroot."/mod/assignmentdistrib/suggest.php?id=$cm->id&mode=suggestedit&aid=$assignment->id"
+                	            , 'suggestedit', 'View proposal', 700, 900, 'View proposed assignment', 'none', true);
+                                
+                            }
+                            
+                        ?>
+                    </td>
+                   
+                </tr>
+            	<?php
+            }
+        ?>
+    </table>
+    <br />
+    <script type="text/javascript">
+        function changebutton(){
+            var button = document.getElementById('movecopy');
+            if (document.getElementById('action').value == 'copy') {
+                button.value = '<?php print_string("copy", "assignmentdistrib"); ?>';
+            } else {
+                button.value = '<?php print_string("move", "assignmentdistrib"); ?>';
+            }
+        }
+    </script>
+    <table width="100%">
+        <?php /* <tr><td><input type="submit" name="export" value="<?php print_string("exportassignments", "assignmentdistrib"); ?>" /></td></tr>  */ ?>
+        <tr>
+            <td>
+                <select name="action" id="action" onchange="changebutton()"> 
+                    <option value="copy"><?php print_string("copy", "assignmentdistrib"); ?></option>
+                    <option value="move"><?php print_string("move", "assignmentdistrib"); ?></option>
+                </select>
+                <?php print_string("selectedto", "assignmentdistrib"); ?>:
+                <select name="destination">
+                    <?php
+                    foreach ($destinations as $destination){
+                        ?>
+                        <option value="<?php echo $destination->id; ?>"> <?php echo ($destination->fullname." - ".$destination->name); ?></option>
+                        <?php  
+                    }
+                    ?>
+                </select>
+                <input type="submit" name="movecopy" id="movecopy" value="<?php print_string("copy", "assignmentdistrib"); ?>" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <input type="submit" name="delete" value="<?php print_string("deletetasks", "assignmentdistrib"); ?>" onclick="javascript: return confirm('<?php print_string('confirmdelete', 'assignmentdistrib') ?>');" />
+            </td>
+        </tr>
+    </table>
+    
+    <input type="hidden" name="course"        value="<?php  p($form->course) ?>" />
+    <input type="hidden" name="sesskey"       value="<?php  p($form->sesskey) ?>" />
+    <input type="hidden" name="coursemodule"  value="<?php  p($form->coursemodule) ?>" />
+    <input type="hidden" name="section"       value="<?php  p($form->section) ?>" />
+    <input type="hidden" name="instance"      value="<?php  p($form->instance) ?>" />
+</form>
+<form name="formaddnew" method="get" action="view.php">
+    <p style="text-align: center">
+        <input type="hidden" name="id"   value="<?php p($cm->id) ?>" />
+        <input type="hidden" name="tab"  value="assignments" />
+        <input type="hidden" name="mode" value="add" />
+        <input type="submit" value="<?php print_string("addnew", "assignmentdistrib"); ?>" />
+    </p>
+</form>
+<div style="color: gray; margin-top: 15px; font-size: smaller;">
+    * <?php  print_string('notice_group_list', 'assignmentdistrib'); ?>
+</div>
+
+<?php print_simple_box_end(); ?>
